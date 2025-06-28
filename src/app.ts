@@ -16,32 +16,30 @@ const razorpayid={
     key_secret:process.env.RAZORPAY_KEY_SECRET || ""
 };
 
-const port =process.env.PORT || 4000;
-const uri =process.env.MONGO_URI || "";
-
-
-
-console.log(port);
+const port = process.env.PORT || 4000;
+const uri = process.env.MONGO_URI || "";
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
 //importing routes
 import userRoutes from "./routes/user.js"
-import  productRoutes from "./routes/products.js"
+import productRoutes from "./routes/products.js"
 import orderRoutes from "./routes/order.js"
 import paymentRoutes from "./routes/payment.js"
 import dashboardRoutes from "./routes/stats.js";
 
-
-
-
 connectDB(uri);
 //caching using node-cache
-export const razorpay= new Razorpay(razorpayid);
+export const razorpay = new Razorpay(razorpayid);
 export const myCache = new NodeCache();
 
 const app = express();
 app.use(morgan("dev"));
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    origin: FRONTEND_URL,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+}));
 
 app.get("/", (req, res) => {
     res.send("api is working with path /api/v1");
@@ -54,10 +52,10 @@ app.use("/api/v1/order", orderRoutes);
 app.use("/api/v1/payment", paymentRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);
 
-
 app.use("/uploads" , express.static("uploads"));
-// Error middleware should be used after all routes
-app.use(errorMiddleware);
+
+// Error middleware
+app.use("/", errorMiddleware);
 
 app.listen(port, ()=>{
     console.log(`express is running on port ${port}`)

@@ -183,13 +183,9 @@ export const getAllProducts = Trycatch(async (req : Request<{},{},{}, searchRequ
       const limit = Number( process.env.PRODUCT_PER_PAGE) || 10; //concept of pagination
       const skip= (page-1)*limit;//concept of pagination
 
-      const baseQuery:BaseQuery = {};
-        if(search){
-            baseQuery.name={
-                        $regex:search,
-                        $options:"i"
-            }
-        }
+      const baseQuery:BaseQuery = {
+        name: { $regex: search, $options: "i" }
+      };
         if(category){
             baseQuery.category=category
         }
