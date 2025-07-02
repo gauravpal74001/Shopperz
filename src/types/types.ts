@@ -53,7 +53,9 @@ export type invalidateCacheProps = {
    product?:boolean,
    order?:boolean,
    admin?:boolean, 
-   user_id?:string
+   user_id?:string,
+   reviews?:boolean,
+   product_id?:string
 };
 export type shippingInfo = {
     address:string ,

@@ -1,11 +1,50 @@
 import mongoose from "mongoose";
 import { invalidateCacheProps, orderItems } from "../types/types.js";
-import { myCache } from "../app.js";
+import { myCache, redis } from "../app.js";
 import { Product } from "../models/product.js";
 import ErrorHandler from "./utility-class.js";
 import { NextFunction } from "express";
 import { Order } from "../models/order.js";
 import { Interface } from "readline";
+import {v2 as cloudinary} from "cloudinary";
+import Review from "../models/reviews.js";
+
+
+const getBase64 = (file: Express.Multer.File) => {
+    return `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+}
+
+export const uploadTocloudinary = async(photos:Express.Multer.File[])=>{
+    const promise=[];
+    for(let i=0;i<photos.length;i++){
+        promise.push(cloudinary.uploader.upload(getBase64(photos[i])));
+    }
+    const result = await Promise.all(promise);
+
+    return result.map((i)=>({
+        public_id:i.public_id,
+        url:i.secure_url
+    }))
+   
+};
+
+export const deleteFromCloudinary = async (public_ids: string[]): Promise<any[]> => {
+    try {
+        if (!Array.isArray(public_ids)) {
+            throw new Error('public_ids must be an array of strings');
+        }
+
+        const deletionPromises = public_ids.map((publicId) => 
+            cloudinary.uploader.destroy(publicId)
+        );
+
+        const results = await Promise.all(deletionPromises);
+        return results;
+    } catch (error) {
+        console.error('Error deleting files from Cloudinary:', error);
+        throw error;
+    }
+};
 
 export const connectDB=(uri:string )=>{
     mongoose.connect( uri  , {
@@ -17,15 +56,14 @@ export const connectDB=(uri:string )=>{
     )
 };
 
-export const  invalidateCache  =  async ( { product , order , admin , user_id }: invalidateCacheProps)=>{
+export const  invalidateCache  =  async ( { product , order , admin , user_id , reviews , product_id }: invalidateCacheProps)=>{
     if(product){
          const cacheKeys = ["latest-product" , "categories" , "products"];
          const id= await Product.find({}).select("_id");
          id.forEach((i)=>{
              cacheKeys.push(`product ${i._id}`);
          })
-         myCache.del(cacheKeys);
-         
+         await redis.del(cacheKeys);
     }
     
     if(order){
@@ -40,14 +78,16 @@ export const  invalidateCache  =  async ( { product , order , admin , user_id }:
         id.forEach((i)=>{                            // time : 4:41:40 
             cacheKeys.push(`order-${i._id}`);
         })
-        myCache.del(cacheKeys);
+        await redis.del(cacheKeys);
     }
-
 
     if(admin){
-        myCache.del(["admin-stats" , "admin-barcharts" , "admin-linecharts" , "admin-piecharts" ]);
+        await redis.del(["admin-stats" , "admin-barcharts" , "admin-linecharts" , "admin-piecharts" ]);
     }
 
+    if(reviews){
+        await redis.del([`reviews-${product_id}`]);
+    }
 };
 
 export const reducestock = async (orderItems: orderItems[])=>{
@@ -105,6 +145,16 @@ export const sixMonthOrderInventory = async ({docarr , length , today , property
     });
     return data;
 };
+
+export const findAvgrating = async (Product_id:string)=>{
+    const reviews = await Review.find({product_id:Product_id}).select("ratings");
+    let total_rating = 0;
+    reviews.forEach((i)=>(
+        total_rating+=i.ratings
+    ))
+    const avg_rating = total_rating/reviews.length;
+    return {avg_rating:Math.floor(avg_rating) , no_of_reviews:reviews.length};
+}
 
 
 

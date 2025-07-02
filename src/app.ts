@@ -6,6 +6,8 @@ import {config} from "dotenv";
 import morgan from "morgan";
 import Razorpay from "razorpay";
 import cors from "cors";
+import {v2 as cloudinary} from "cloudinary";
+import { Redis } from "ioredis";
 
 config({
     path:"./.env"
@@ -19,6 +21,7 @@ const razorpayid={
 const port = process.env.PORT || 4000;
 const uri = process.env.MONGO_URI || "";
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+export const REDIS_TTL=process.env.REDIS_TTL || 4*60*60;
 
 //importing routes
 import userRoutes from "./routes/user.js"
@@ -27,7 +30,31 @@ import orderRoutes from "./routes/order.js"
 import paymentRoutes from "./routes/payment.js"
 import dashboardRoutes from "./routes/stats.js";
 
+// Initialize Redis
+export const redis = new Redis({
+    host: 'redis',
+    port: 6379,
+    maxRetriesPerRequest: 5
+});
+
+redis.on('connect', () => {
+    console.log('Connected to Redis');
+});
+
+redis.on('error', (error) => {
+    console.error('Redis connection error:', error);
+});
+
+// Connect to MongoDB
 connectDB(uri);
+
+// Cloudinary Configuration
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 //caching using node-cache
 export const razorpay = new Razorpay(razorpayid);
 export const myCache = new NodeCache();
@@ -59,5 +86,5 @@ app.use("/", errorMiddleware);
 
 app.listen(port, ()=>{
     console.log(`express is running on port ${port}`)
-})
+});
 

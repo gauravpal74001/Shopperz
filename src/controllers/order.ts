@@ -4,8 +4,8 @@ import { newOrderRequestBody } from "../types/types.js";
 import { Order } from "../models/order.js";
 import { invalidateCache, reducestock } from "../utils/features.js";
 import ErrorHandler from "../utils/utility-class.js";
-import { myCache } from "../app.js";
-import { stringify } from "querystring";
+import { redis, REDIS_TTL } from "../app.js";
+
 
 
 export const newOrder = Trycatch(async(req : Request<{},{},newOrderRequestBody>, res , next )=>{
@@ -47,12 +47,13 @@ export const myOrders = Trycatch (async (req, res,next )=>{
     }
     let orders;
     const key= `my_orders-${user_id}`;
-    if(myCache.has(key)){
-        orders=JSON.parse(myCache.get(key) as string);
+    orders=await redis.get(key);
+    if(orders){
+        orders=JSON.parse(orders);
     }
     else{
         orders = await Order.find({user : user_id});
-        myCache.set(key, JSON.stringify(orders));
+        redis.setex(key, REDIS_TTL, JSON.stringify(orders));
     }
      
     res.status(200).json({
@@ -65,12 +66,13 @@ export const myOrders = Trycatch (async (req, res,next )=>{
 export const Allorders = Trycatch (async (req, res,next )=>{
     let orders;
     const key =  "all-orders";
-    if(myCache.has(key)){
-        orders=JSON.parse(myCache.get(key)  as string);
+    orders=await redis.get(key);
+    if(orders){
+        orders=JSON.parse(orders);
     }
     else{
         orders= await Order.find({}).populate( "user" , "name"); //populate user name 
-        myCache.set(key , JSON.stringify(orders));
+            redis.setex(key, REDIS_TTL, JSON.stringify(orders));
     }
     res.status(200).json({
         success:true, 
@@ -83,12 +85,13 @@ export const getSingleOrder = Trycatch (async (req, res,next )=>{
   const {id}=req.params;
   let order;
   const key= `order-${id}`;
-  if(myCache.has(key)){
-     order = JSON.parse(myCache.get(key) as string) 
+  order=await redis.get(key);
+  if(order){
+     order = JSON.parse(order) 
   }
   else{
     order = await Order.findById(id).populate("user" , "name");
-    myCache.set(key, JSON.stringify(order));
+    redis.setex(key, REDIS_TTL, JSON.stringify(order));
   }
 
   res.status(200).json({
