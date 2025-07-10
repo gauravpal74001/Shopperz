@@ -10,6 +10,8 @@ import {v2 as cloudinary} from "cloudinary";
 import { Redis } from "ioredis";
 import ErrorHandler from "./utils/utility-class.js";
 
+
+
 config({
     path:"./.env"
 });
@@ -21,7 +23,7 @@ const razorpayid={
 
 const port = process.env.PORT || 4000;
 const uri = process.env.MONGO_URI || "";
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+// const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 export const REDIS_TTL=process.env.REDIS_TTL || 4*60*60;
 
 //importing routes
@@ -63,11 +65,24 @@ export const myCache = new NodeCache();
 const app = express();
 app.use(morgan("dev"));
 app.use(express.json());
-app.use(cors({
-    origin: FRONTEND_URL,
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true,
-}));
+
+  const allowedOrigins = [
+    "http://localhost:5173",
+    "https://shopperz-frontend-rxss-ceqv62csr-gauravs-projects-9c3630b4.vercel.app"
+  ];
+  app.use(cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true
+  }));
+  
+
+
 
 app.get("/", (req, res) => {
     res.send("api is working with path /api/v1");
