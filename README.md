@@ -180,4 +180,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Designed for scalability and performance
 
 ---
-Made with ❤️ by [Your Name] 
+Made with ❤️ by [Gaurav Pal] 
