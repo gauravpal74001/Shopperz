@@ -1,8 +1,9 @@
 import { Trycatch } from "./error.js";
 import ErrorHandler from "../utils/utility-class.js";
 import { User } from "../models/user.js";
+import { Request, Response, NextFunction } from "express";
 
-export  const adminonly = Trycatch(async(req, res, next ) =>{
+export  const adminonly = Trycatch(async(req : Request, res: Response, next: NextFunction) =>{
      const {id} = req.query;
      if(!id){
         return next(new ErrorHandler("please provide id" , 400))

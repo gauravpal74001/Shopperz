@@ -8,6 +8,7 @@ import Razorpay from "razorpay";
 import cors from "cors";
 import {v2 as cloudinary} from "cloudinary";
 import { Redis } from "ioredis";
+import ErrorHandler from "./utils/utility-class.js";
 
 config({
     path:"./.env"
@@ -81,8 +82,10 @@ app.use("/api/v1/dashboard", dashboardRoutes);
 
 app.use("/uploads" , express.static("uploads"));
 
-// Error middleware
-app.use("/", errorMiddleware);
+
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    errorMiddleware(err as ErrorHandler, req, res, next);
+});
 
 app.listen(port, ()=>{
     console.log(`express is running on port ${port}`)
